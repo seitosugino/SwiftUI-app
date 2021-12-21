@@ -13,25 +13,27 @@ struct Response: Codable {
 
 struct Result: Codable {
     var trackId: Int
+    var averageUserRating: Double
     var trackName: String?
     var formattedPrice: String?
 }
 
 struct ContentView: View {
     @State private var results = [Result]()
+    @State private var seachTextField = ""
     
     var body: some View {
         NavigationView{
             List(results, id: \.trackId){item in
                 VStack(alignment: .leading){
-                    NavigationLink(destination: ShowDiteil()) {
+                    NavigationLink(destination: ShowDiteil(itemData: item)) {
                         Text(item.trackName ?? "").font(.headline)
                         Text(item.formattedPrice ?? "")
                     }
                 }
             }.navigationTitle("appStoreアプリ")
                 .navigationBarItems(leading: Button(action: {}, label: {
-                    NavigationLink(destination: MemoView()){
+                    NavigationLink(destination: SeachView()){
                         Text("検索")
                     }
                 }), trailing: HStack {
@@ -45,7 +47,76 @@ struct ContentView: View {
     }
     
     func loadData(){
-        guard let URL = URL(string: "https://itunes.apple.com/search?term=swiftui&country=jp&media=software")else{
+        guard let URL = URL(string: "https://itunes.apple.com/search?term=game&country=jp&media=software")else{
+            return
+        }
+        
+        let request = URLRequest(url: URL)
+        
+        URLSession.shared.dataTask(with: request){data, response, error in
+            if let data = data{
+                let decoder = JSONDecoder()
+                guard let decodedResponse = try? decoder.decode(Response.self, from: data)else{
+                    print("JSON decode エラー")
+                    return
+                }
+                
+                DispatchQueue.main.async {
+                    results = decodedResponse.results
+                }
+            }else{
+                print("Fetch failed: \(error?.localizedDescription ?? "Unknown error")")
+            }
+        }.resume()
+    }
+}
+
+struct SeachView: View {
+    @State private var results = [Result]()
+    @State var term = ""
+    
+    var body: some View {
+        VStack{
+            HStack{
+                Text("検索").font(.largeTitle).padding(.leading)
+                Spacer()
+            }
+            HStack{
+                TextField("キーワードを入れてください", text: $term).textFieldStyle(RoundedBorderTextFieldStyle()).frame(width:300)
+                Button(action: {
+                    term = ""
+                }){
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 5).frame(width:50,height: 30)
+                        NavigationLink(destination: SeachContentView(term: $term)){
+                            Text("検索").foregroundColor(.white)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+struct SeachContentView: View {
+    @State private var results = [Result]()
+    @Binding var term: String
+    
+    var body: some View {
+        NavigationView{
+            List(results, id: \.trackId){item in
+                VStack(alignment: .leading){
+                    NavigationLink(destination: ShowDiteil(itemData: item)) {
+                        Text(item.trackName ?? "").font(.headline)
+                        Text(item.formattedPrice ?? "")
+                    }
+                }
+            }
+        }.navigationTitle("検索結果").onAppear(perform: loadData)
+    }
+    
+    func loadData(){
+        guard let URL = URL(string: "https://itunes.apple.com/search?term=\(term)&country=jp&media=software")else{
             return
         }
         
@@ -71,8 +142,10 @@ struct ContentView: View {
 
 struct ShowDiteil: View{
     
+    var itemData: Result
     var body: some View{
-        Text("1")
+        Text(itemData.trackName ?? "")
+        Text(itemData.formattedPrice ?? "")
     }
 }
 
