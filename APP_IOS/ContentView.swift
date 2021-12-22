@@ -13,6 +13,7 @@ struct Response: Codable {
 
 struct Result: Codable {
     var trackId: Int
+    var userRatingCount: Int
     var averageUserRating: Double
     var trackName: String?
     var formattedPrice: String?
@@ -148,6 +149,7 @@ struct ShowDiteil: View{
         Text(itemData.trackName ?? "")
         URLImage(url: "\(itemData.artworkUrl100)")
                         .aspectRatio(contentMode: .fit)
+        Text("評価 \(String(format: "%.1f", itemData.averageUserRating)) (\(itemData.userRatingCount)件)")
         Text(itemData.formattedPrice ?? "")
     }
 }
