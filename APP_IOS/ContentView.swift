@@ -16,6 +16,7 @@ struct Result: Codable {
     var averageUserRating: Double
     var trackName: String?
     var formattedPrice: String?
+    var artworkUrl100: String
 }
 
 struct ContentView: View {
@@ -145,6 +146,8 @@ struct ShowDiteil: View{
     var itemData: Result
     var body: some View{
         Text(itemData.trackName ?? "")
+        URLImage(url: "\(itemData.artworkUrl100)")
+                        .aspectRatio(contentMode: .fit)
         Text(itemData.formattedPrice ?? "")
     }
 }
@@ -224,5 +227,39 @@ struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
         ContentView()
 .previewInterfaceOrientation(.portraitUpsideDown)
+    }
+}
+
+class ImageDownloader : ObservableObject{
+    @Published var downloadData: Data? = nil
+    func downloadImage(url: String){
+        guard let imageURL = URL(string: url) else { return }
+        DispatchQueue.global().async{
+            let data = try? Data(contentsOf: imageURL)
+            DispatchQueue.main.async{
+                self.downloadData = data
+            }
+        }
+    }
+}
+
+struct URLImage: View{
+    let url: String
+    @ObservedObject private var imageDownloader = ImageDownloader()
+    init(url: String){
+        self.url = url
+        self.imageDownloader.downloadImage(url: self.url)
+    }
+    var body: some View{
+        if let imageData = self.imageDownloader.downloadData{
+            let img = UIImage(data: imageData)
+            return VStack{
+                Image(uiImage: img!).resizable()
+            }
+        } else {
+            return VStack{
+                Image(uiImage: UIImage(systemName: "icloud.and.arrow.down")!).resizable()
+            }
+        }
     }
 }
